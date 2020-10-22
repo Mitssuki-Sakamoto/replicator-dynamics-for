@@ -1,5 +1,17 @@
 
-payoffMatrix = csvread("payoff_0.90_0.10_0.90.csv",1,1);
+
+datetimestr =  datestr(datetime('now'), "yyyy-mm-dd-HH-MM-SS");
+logdir = "outcomes/" + datetimestr + '/';
+mkdir(logdir);
+saveCsvsDir = logdir+"csvs/";
+saveImagesDir = logdir+"images/";
+mkdir(saveCsvsDir);
+mkdir(saveImagesDir);
+payoffCsvFile =  "payoff_0.90_0.10_0.90.csv";
+% 少々雑
+payoffName = split(payoffCsvFile,".csv");
+payoffName = payoffName(1);
+payoffMatrix = csvread(payoffCsvFile,1,1);
 mutaionValue = 0.01;
 dt = 0.2;
 
@@ -21,14 +33,14 @@ rd = {
     @(populations) mutationRD3(payoffMatrix, populations, mutationRates);
     };
 
-for i = 1:length(rd)
+for ir = 1:length(rd)
     populations = ones(length(payoffMatrix),1) ./ length(payoffMatrix);
     populationsHistories = [populations];
     count = 0;
     tic;
     while 1
         count = count + dt;
-        dx = rd{i}(populations);
+        dx = rd{ir}(populations);
         populations = populations + (dx * dt);
         populationsHistories = [populationsHistories, populations];
         if max(reshape(dx,1,[])) < 0.00001 || count > 1000
@@ -37,10 +49,15 @@ for i = 1:length(rd)
         end
     end
     toc;
+    fileName = "rd"+ ir + "_" + payoffName +".csv";
+    csvwrite(saveCsvsDir + fileName, populationsHistories.')
     figure;
-    plot(populationsHistories.')
-    ylim([0 1])
-    max(populations)
+    plot(populationsHistories.');
+    ylim([0 1]);
+    f = gcf;
+    fileName =  "rd"+ ir + "_"  + payoffName + ".png";
+    exportgraphics(f, saveImagesDir + fileName);
+    disp(populations);
 end
 
 
