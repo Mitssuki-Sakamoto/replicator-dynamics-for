@@ -7,30 +7,36 @@ saveCsvsDir = logdir+"csvs/";
 saveImagesDir = logdir+"images/";
 mkdir(saveCsvsDir);
 mkdir(saveImagesDir);
+
 payoffCsvFile =  "payoff_0.90_0.10_0.90.csv";
 % 少々雑
 payoffName = split(payoffCsvFile,".csv");
 payoffName = payoffName(1);
+
 payoffMatrix = csvread(payoffCsvFile,1,1);
-mutaionValue = 0.01;
-dt = 0.2;
+mutationValue = 0.01;
+dt = 0.1;
+maxCount = 1000;
+stopThreshold = 0.00001;
 
 mutationRates = ones(length(payoffMatrix));
 nStragtegies = length(payoffMatrix);
 for i = 1:nStragtegies
     for j = 1:nStragtegies
         if i == j
-            mutationRates(i,j) = 1 - mutaionValue;
+            mutationRates(i,j) = 1 - mutationValue;
         else
-            mutationRates(i,j) = mutaionValue/(nStragtegies-1);
+            mutationRates(i,j) = mutationValue/(nStragtegies-1);
         end
     end
 end
 
 rd = {
     @(populations) mutationRD1(payoffMatrix, populations, mutationRates);
-    @(populations) mutationRD2(payoffMatrix, populations, mutaionValue);
+    @(populations) mutationRD2(payoffMatrix, populations, mutationValue);
     @(populations) mutationRD3(payoffMatrix, populations, mutationRates);
+    @(populations) mutationRD4(payoffMatrix, populations, mutationRates);
+    @(populations) mutationRD5(payoffMatrix, populations, mutationValue);
     };
 
 for ir = 1:length(rd)
@@ -43,7 +49,7 @@ for ir = 1:length(rd)
         dx = rd{ir}(populations);
         populations = populations + (dx * dt);
         populationsHistories = [populationsHistories, populations];
-        if max(reshape(dx,1,[])) < 0.00001 || count > 1000
+        if max(reshape(dx,1,[])) < stopThreshold || count > maxCount
             disp(count);
             break;
         end
@@ -83,4 +89,19 @@ function dv = mutationRD3(payoffMatrix, populations, mutationRates)
     strategyAveragePayoffs = payoffMatrix  * populations;
     populationAveragePayoff =  populations.' * strategyAveragePayoffs;
     dv = sum(repmat(populations,1,length(populations)) .* repmat(strategyAveragePayoffs,1,length(strategyAveragePayoffs)) .* mutationRates).' - populations .* populationAveragePayoff;
+end
+
+% 旧レプリーター Johaness
+function dv = mutationRD4(payoffMatrix, populations, mutationRates)
+    strategyAveragePayoffs = payoffMatrix  * populations;
+    newPopulation = sum(repmat(populations,1,length(populations)) .* repmat(strategyAveragePayoffs,1,length(strategyAveragePayoffs)) .* mutationRates).';
+    dv = newPopulation/sum(newPopulation) -  populations;
+end
+
+% 新レプリーター Johaness
+function dv = mutationRD5(payoffMatrix, populations, mutationValue)
+    strategyAveragePayoffs = payoffMatrix * populations;
+    newPopulation = populations.*strategyAveragePayoffs ...
+        + + mutationValue .* (repmat(1/length(populations), length(populations), 1) - populations);  
+    dv = newPopulation/sum(newPopulation) -  populations;
 end
