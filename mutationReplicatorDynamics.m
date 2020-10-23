@@ -15,6 +15,7 @@ payoffName = payoffName(1);
 
 payoffMatrix = csvread(payoffCsvFile,1,1);
 mutationValue = 0.01;
+% 更新幅
 dt = 0.1;
 maxCount = 1000;
 stopThreshold = 0.00001;
