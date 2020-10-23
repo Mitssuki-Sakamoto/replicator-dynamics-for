@@ -103,6 +103,6 @@ end
 function dv = mutationRD5(payoffMatrix, populations, mutationValue)
     strategyAveragePayoffs = payoffMatrix * populations;
     newPopulation = populations.*strategyAveragePayoffs ...
-        + + mutationValue .* (repmat(1/length(populations), length(populations), 1) - populations);  
+        + mutationValue .* (repmat(1/length(populations), length(populations), 1) - populations);  
     dv = newPopulation/sum(newPopulation) -  populations;
 end
