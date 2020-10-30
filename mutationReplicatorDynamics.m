@@ -28,7 +28,7 @@ cd ..
 mutationValue = 0.01;
 % 更新幅
 dt = 0.1;
-maxCount = 10000;
+maxCount = 2000;
 stopThreshold = 0.00001;
 
 
@@ -45,7 +45,7 @@ for i = 1:nStragtegies
 end
 
 tStart=tic;
-for ip = 1:length(payoffMatrixes(1,1,13:13))
+for ip = 1:length(payoffMatrixes(1,1,:))
     payoffName = payoffNames(ip);
     payoffMatrix = payoffMatrixes(:,:,ip);
     rd = {
