@@ -8,17 +8,29 @@ saveImagesDir = logdir+"images/";
 mkdir(saveCsvsDir);
 mkdir(saveImagesDir);
 
-payoffCsvFile =  "payoff_0.90_0.10_0.90.csv";
-% 少々雑
-payoffName = split(payoffCsvFile,".csv");
-payoffName = payoffName(1);
+payoffCsvFiles = [];
+cd payoff
+payoffCsvFileStructs = dir("*.csv");
+payoffCsvFiles = string({payoffCsvFileStructs.name});
+payoffMatrixes = [];
+payoffNames = [];
+for i = 1:length(payoffCsvFiles)
+    payoffCsvFile =  payoffCsvFiles(i);
+    payoffMatrix = csvread(payoffCsvFile,1,1);
+    payoffMatrixes = cat(3,payoffMatrixes, payoffMatrix);
+    % 少々雑
+    payoffName = split(payoffCsvFile,".csv");
+    payoffName = payoffName(1);
+    payoffNames = [payoffNames, payoffName];
+end
+cd ..
 
-payoffMatrix = csvread(payoffCsvFile,1,1);
 mutationValue = 0.01;
 % 更新幅
 dt = 0.1;
-maxCount = 1000;
+maxCount = 10000;
 stopThreshold = 0.00001;
+
 
 mutationRates = ones(length(payoffMatrix));
 nStragtegies = length(payoffMatrix);
@@ -32,42 +44,46 @@ for i = 1:nStragtegies
     end
 end
 
-rd = {
+tStart=tic;
+for ip = 1:length(payoffMatrixes(1,1,13:13))
+    payoffName = payoffNames(ip);
+    payoffMatrix = payoffMatrixes(:,:,ip);
+    rd = {
     @(populations) mutationRD1(payoffMatrix, populations, mutationRates);
     @(populations) mutationRD2(payoffMatrix, populations, mutationValue);
     @(populations) mutationRD3(payoffMatrix, populations, mutationRates);
     @(populations) mutationRD4(payoffMatrix, populations, mutationRates);
     @(populations) mutationRD5(payoffMatrix, populations, mutationValue);
     };
-
-for ir = 1:length(rd)
-    populations = ones(length(payoffMatrix),1) ./ length(payoffMatrix);
-    populationsHistories = [populations];
-    count = 0;
-    tic;
-    while 1
-        count = count + dt;
-        dx = rd{ir}(populations);
-        populations = populations + (dx * dt);
-        populationsHistories = [populationsHistories, populations];
-        if max(reshape(dx,1,[])) < stopThreshold || count > maxCount
-            disp(count);
-            break;
+    for ir = 1:length(rd)
+        populations = ones(length(payoffMatrix),1) ./ length(payoffMatrix);
+        count = 0;
+        i = 1;
+        populationsHistories = zeros(length(populations)+1, maxCount);
+        populationsHistories(:,i) = [count; populations];
+        tic;
+        for count = 0:dt:maxCount
+            i = i+1;
+            dx = rd{ir}(populations);
+            populations = populations + (dx * dt);
+            populationsHistories(:,i) = [count; populations];
+            %if max(reshape(dx,1,[])) < stopThreshold || count > maxCount
         end
+        toc;
+        fileName = "rd"+ ir + "_" + payoffName +".csv";
+        csvwrite(saveCsvsDir + fileName, populationsHistories.')
+        
+        figure;
+        plot(populationsHistories(1,:).' , populationsHistories(2:end, : ).');
+        ylim([0 1]);
+        f = gcf;
+        fileName =  "rd"+ ir + "_"  + payoffName + ".png";
+        exportgraphics(f, saveImagesDir + fileName);
+        
+        disp(populations);
     end
-    toc;
-    fileName = "rd"+ ir + "_" + payoffName +".csv";
-    csvwrite(saveCsvsDir + fileName, populationsHistories.')
-    figure;
-    plot(populationsHistories.');
-    ylim([0 1]);
-    f = gcf;
-    fileName =  "rd"+ ir + "_"  + payoffName + ".png";
-    exportgraphics(f, saveImagesDir + fileName);
-    disp(populations);
 end
-
-
+toc(tStart);
 
 % 強化学習のサーベイ論文
 function dv = mutationRD1(payoffMatrix, populations, mutationRates)
